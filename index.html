@@ -3,239 +3,248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roblox Helper Admin Mini App</title>
-    <!-- Официальный скрипт Telegram Web App -->
+    <title>Roblox Mini App</title>
+    <!-- Подключаем официальный скрипт Telegram Web App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Подключаем Firebase для авторизации через Google -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-
     <style>
+        :root {
+            --tg-theme-bg-color: #0f111a;
+            --tg-theme-text-color: #ffffff;
+            --tg-theme-hint-color: #8b8fa3;
+            --tg-theme-button-color: #ff385c;
+            --tg-theme-button-text-color: #ffffff;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--tg-theme-bg-color, #1f2125);
+            background-color: var(--tg-theme-bg-color, #0f111a);
             color: var(--tg-theme-text-color, #ffffff);
             margin: 0;
-            padding: 15px;
+            padding: 16px;
         }
-        .user-greeting {
-            background-color: var(--tg-theme-secondary-bg-color, #2b2d31);
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 14px;
-            margin-bottom: 15px;
-            text-align: center;
-            color: #5865F2;
-            font-weight: bold;
-        }
+
         h1 {
-            font-size: 18px;
-            margin-bottom: 10px;
+            font-size: 22px;
+            margin-bottom: 8px;
             text-align: center;
         }
+
+        .subtitle {
+            text-align: center;
+            color: var(--tg-theme-hint-color, #8b8fa3);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
         /* Поиск */
         .search-box {
             width: 100%;
-            padding: 12px;
-            font-size: 15px;
+            padding: 12px 16px;
             border-radius: 12px;
-            border: 1px solid #444;
-            background-color: var(--tg-theme-secondary-bg-color, #2b2d31);
-            color: var(--tg-theme-text-color, #fff);
-            box-sizing: border-box;
-            margin-bottom: 15px;
-            outline: none;
-        }
-        /* Карточки новостей */
-        .card {
-            background-color: var(--tg-theme-secondary-bg-color, #2b2d31);
-            border-radius: 14px;
-            padding: 15px;
-            margin-bottom: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-        .card h3 {
-            margin-top: 0;
-            color: #5865F2;
-            font-size: 17px;
-        }
-        .card p {
-            font-size: 13px;
-            line-height: 1.4;
-            color: #ccc;
-            margin-bottom: 0;
-        }
-        /* Админ панель */
-        .admin-panel {
-            background: #2b2d31;
-            padding: 15px;
-            border-radius: 14px;
-            margin-top: 20px;
-            border: 2px dashed #5865F2;
-            display: none;
-        }
-        .admin-panel input, .admin-panel textarea {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            background: #1f2125;
-            border: 1px solid #444;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
             color: #fff;
-            border-radius: 8px;
+            font-size: 16px;
             box-sizing: border-box;
+            margin-bottom: 20px;
+            outline: none;
+            transition: border-color 0.2s;
         }
+
+        .search-box:focus {
+            border-color: var(--tg-theme-button-color, #ff385c);
+        }
+
+        /* Карточки */
+        .card-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 14px;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .card-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+
+        .card-content-wrap {
+            flex-grow: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-info h3 {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+        }
+
+        .card-info p {
+            margin: 0;
+            font-size: 13px;
+            color: var(--tg-theme-hint-color, #8b8fa3);
+        }
+
         .btn {
-            background-color: #5865F2;
-            color: white;
+            background-color: var(--tg-theme-button-color, #ff385c);
+            color: var(--tg-theme-button-text-color, #ffffff);
             border: none;
-            padding: 10px 15px;
+            padding: 8px 14px;
             border-radius: 8px;
+            font-weight: 600;
             cursor: pointer;
-            font-weight: bold;
-            width: 100%;
+            flex-shrink: 0;
         }
-        .google-btn {
-            background-color: #db4437;
-            margin-bottom: 15px;
+
+        /* Панель администратора (скрыта по умолчанию) */
+        #admin-panel {
+            display: none;
+            margin-top: 30px;
+            background: rgba(255, 56, 92, 0.1);
+            border: 1px dashed var(--tg-theme-button-color, #ff385c);
+            border-radius: 14px;
+            padding: 16px;
+        }
+
+        #admin-panel h2 {
+            font-size: 18px;
+            color: var(--tg-theme-button-color, #ff385c);
+            margin-top: 0;
+        }
+
+        .admin-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .admin-input {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.2);
+            color: #fff;
+            outline: none;
         }
     </style>
 </head>
 <body>
 
-    <!-- Приветствие -->
-    <div id="userGreeting" class="user-greeting">Загрузка профиля...</div>
+    <h1>Roblox Hub</h1>
+    <div class="subtitle">Выбери режим или вещь</div>
 
-    <!-- Кнопка входа для админов через Google -->
-    <div id="authContainer" style="text-align: center; margin-bottom: 15px;">
-        <button class="btn google-btn" onclick="loginWithGoogle()">🔐 Вход для админов (Google)</button>
-    </div>
+    <!-- Поиск -->
+    <input type="text" class="search-box" id="searchInput" placeholder="Поиск по каталогу..." oninput="filterItems()">
 
-    <h1>🎮 Поиск и Новости Roblox</h1>
-
-    <!-- Строка поиска -->
-    <input type="text" id="searchInput" class="search-box" placeholder="🔍 Поиск по MM2, Dead Rails..." onkeyup="searchNews()">
-
-    <!-- Блок новостей -->
-    <div id="newsContainer">
-        <div class="card" data-text="mm2 murder mystery 2 летнее обновление ножи">
-            <h3>🔪 Murder Mystery 2 (MM2)</h3>
-            <p><b>Скоро летнее обновление!</b> Разработчики готовят глобальный патч с новыми сезонными кейсами и ножами.</p>
+    <!-- Список элементов -->
+    <div class="card-container" id="catalog">
+        <div class="card" data-name="adopt me">
+            <img src="https://tr.rbxcdn.com/180_180/7a1d1306e987c95a0430635436696b05/png" class="card-img" alt="Adopt Me">
+            <div class="card-content-wrap">
+                <div class="card-info">
+                    <h3>Adopt Me!</h3>
+                    <p>Популярный симулятор питомцев</p>
+                </div>
+                <button class="btn" onclick="alert('Выбран режим Adopt Me!')">Играть</button>
+            </div>
         </div>
 
-        <div class="card" data-text="dead rails мертвые рельсы поезд вода кактусы буря">
-            <h3>🚂 Dead Rails</h3>
-            <p><b>Масштабный патч!</b> Добавлен новый поезд на воде вместо угля. На карте бушует песчаная буря, а для заправки нужны кактусы с водой!</p>
+        <div class="card" data-name="blox fruits">
+            <img src="https://tr.rbxcdn.com/180_180/5501b441f71dfb150993090887e2b7a4/png" class="card-img" alt="Blox Fruits">
+            <div class="card-content-wrap">
+                <div class="card-info">
+                    <h3>Blox Fruits</h3>
+                    <p>Приключения и прокачка фруктов</p>
+                </div>
+                <button class="btn" onclick="alert('Выбран режим Blox Fruits!')">Играть</button>
+            </div>
         </div>
     </div>
 
-    <!-- Форма добавления новостей для админов -->
-    <div id="adminPanel" class="admin-panel">
-        <h3>🛠 Панель администратора</h3>
-        <p id="adminEmail" style="font-size: 12px; color: #aaa;"></p>
-        <input type="text" id="newTitle" placeholder="Заголовок новости (например: Новый промокод!)">
-        <textarea id="newText" rows="3" placeholder="Текст новости..."></textarea>
-        <button class="btn" onclick="postNews()">➕ Опубликовать новость</button>
-        <button class="btn" style="background-color: #444; margin-top: 8px;" onclick="logout()">Выйти</button>
+    <!-- Секретная панель администратора -->
+    <div id="admin-panel">
+        <h2>👑 Панель Администратора</h2>
+        <p style="font-size: 13px; color: #aaa;">Автоматический вход выполнен по вашему Telegram ID.</p>
+        <div class="admin-controls">
+            <input type="text" class="admin-input" id="newItemName" placeholder="Название элемента">
+            <input type="text" class="admin-input" id="newItemDesc" placeholder="Описание">
+            <input type="text" class="admin-input" id="newItemImg" placeholder="Ссылка на картинку (URL)">
+            <button class="btn" onclick="addItem()">Добавить в каталог</button>
+        </div>
     </div>
 
     <script>
-        // НАСТРОЙКИ FIREBASE (Замените на свои данные из консоли Firebase)
-        const firebaseConfig = {
-            apiKey: "ВАШ_API_KEY",
-            authDomain: "ВАШ_AUTH_DOMAIN",
-            projectId: "ВАШ_PROJECT_ID",
-            storageBucket: "ВАШ_STORAGE_BUCKET",
-            messagingSenderId: "ВАШ_MESSAGING_SENDER_ID",
-            appId: "ВАШ_APP_ID"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-
-        // Список email адресов, которым разрешено публиковать новости (ваша почта администратора)
-        const ADMIN_EMAILS = ["vash.email@gmail.com"];
-
-        let tg = window.Telegram.WebApp;
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Приветствие из Telegram
-        let userGreeting = document.getElementById('userGreeting');
+        // Автоматическая проверка администратора по твоему ID (6122432326)
         if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            userGreeting.innerText = `👋 Привет, ${tg.initDataUnsafe.user.first_name}!`;
-        } else {
-            userGreeting.innerText = `👋 Добро пожаловать, Игрок!`;
-        }
-
-        // Проверка входа Google
-        auth.onAuthStateChanged((user) => {
-            let adminPanel = document.getElementById('adminPanel');
-            let authContainer = document.getElementById('authContainer');
-            let adminEmail = document.getElementById('adminEmail');
-
-            if (user && ADMIN_EMAILS.includes(user.email)) {
-                adminPanel.style.display = "block";
-                authContainer.style.display = "none";
-                adminEmail.innerText = `Вы вошли как админ: ${user.email}`;
-            } else {
-                adminPanel.style.display = "none";
-                authContainer.style.display = "block";
+            if (tg.initDataUnsafe.user.id === 6122432326) {
+                document.getElementById('admin-panel').style.display = 'block';
             }
-        });
-
-        // Функция входа через Google
-        function loginWithGoogle() {
-            let provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch((error) => {
-                alert("Ошибка входа: " + error.message);
-            });
         }
 
-        // Функция выхода
-        function logout() {
-            auth.signOut();
-        }
-
-        // Публикация новости
-        function postNews() {
-            let title = document.getElementById('newTitle').value;
-            let text = document.getElementById('newText').value;
-
-            if (!title || !text) {
-                alert("Заполните все поля!");
-                return;
-            }
-
-            let container = document.getElementById('newsContainer');
-            let newCard = document.createElement('div');
-            newCard.className = 'card';
-            newCard.setAttribute('data-text', (title + " " + text).toLowerCase());
-            newCard.innerHTML = `<h3>📌 ${title}</h3><p>${text}</p>`;
-            
-            // Добавляем новость наверх списка
-            container.prepend(newCard);
-
-            // Очищаем поля
-            document.getElementById('newTitle').value = '';
-            document.getElementById('newText').value = '';
-            alert("Новость успешно опубликована!");
-        }
-
-        // Поиск по новостям
-        function searchNews() {
+        // Функция поиска по карточкам
+        function filterItems() {
             let input = document.getElementById('searchInput').value.toLowerCase();
             let cards = document.getElementsByClassName('card');
 
             for (let i = 0; i < cards.length; i++) {
-                let text = cards[i].getAttribute('data-text').toLowerCase();
-                if (text.includes(input)) {
-                    cards[i].style.display = "";
+                let name = cards[i].getAttribute('data-name');
+                if (name.includes(input)) {
+                    cards[i].style.display = "flex";
                 } else {
                     cards[i].style.display = "none";
                 }
             }
         }
+
+        // Функция добавления элемента с картинкой
+        function addItem() {
+            let name = document.getElementById('newItemName').value;
+            let desc = document.getElementById('newItemDesc').value || 'Новый элемент каталога';
+            let imgUrl = document.getElementById('newItemImg').value || 'https://via.placeholder.com/150';
+
+            if (!name) return alert('Введите название!');
+
+            let catalog = document.getElementById('catalog');
+            let newCard = document.createElement('div');
+            newCard.className = 'card';
+            newCard.setAttribute('data-name', name.toLowerCase());
+            newCard.innerHTML = `
+                <img src="${imgUrl}" class="card-img" alt="${name}">
+                <div class="card-content-wrap">
+                    <div class="card-info">
+                        <h3>${name}</h3>
+                        <p>${desc}</p>
+                    </div>
+                    <button class="btn" onclick="alert('Выбран элемент ${name}')">Открыть</button>
+                </div>
+            `;
+            catalog.appendChild(newCard);
+
+            // Очищаем поля
+            document.getElementById('newItemName').value = '';
+            document.getElementById('newItemDesc').value = '';
+            document.getElementById('newItemImg').value = '';
+            alert('Успешно добавлено!');
+        }
     </script>
 </body>
 </html>
+
