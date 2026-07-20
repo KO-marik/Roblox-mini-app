@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Helper Admin Mini App</title>
+    <!-- Официальный скрипт Telegram Web App -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Подключаем Firebase для авторизации через Google -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #1f2125);
+            color: var(--tg-theme-text-color, #ffffff);
+            margin: 0;
+            padding: 15px;
+        }
+        .user-greeting {
+            background-color: var(--tg-theme-secondary-bg-color, #2b2d31);
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #5865F2;
+            font-weight: bold;
+        }
+        h1 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        /* Поиск */
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            font-size: 15px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            background-color: var(--tg-theme-secondary-bg-color, #2b2d31);
+            color: var(--tg-theme-text-color, #fff);
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            outline: none;
+        }
+        /* Карточки новостей */
+        .card {
+            background-color: var(--tg-theme-secondary-bg-color, #2b2d31);
+            border-radius: 14px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #5865F2;
+            font-size: 17px;
+        }
+        .card p {
+            font-size: 13px;
+            line-height: 1.4;
+            color: #ccc;
+            margin-bottom: 0;
+        }
+        /* Админ панель */
+        .admin-panel {
+            background: #2b2d31;
+            padding: 15px;
+            border-radius: 14px;
+            margin-top: 20px;
+            border: 2px dashed #5865F2;
+            display: none;
+        }
+        .admin-panel input, .admin-panel textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #1f2125;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+        .btn {
+            background-color: #5865F2;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+        }
+        .google-btn {
+            background-color: #db4437;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Приветствие -->
+    <div id="userGreeting" class="user-greeting">Загрузка профиля...</div>
+
+    <!-- Кнопка входа для админов через Google -->
+    <div id="authContainer" style="text-align: center; margin-bottom: 15px;">
+        <button class="btn google-btn" onclick="loginWithGoogle()">🔐 Вход для админов (Google)</button>
+    </div>
+
+    <h1>🎮 Поиск и Новости Roblox</h1>
+
+    <!-- Строка поиска -->
+    <input type="text" id="searchInput" class="search-box" placeholder="🔍 Поиск по MM2, Dead Rails..." onkeyup="searchNews()">
+
+    <!-- Блок новостей -->
+    <div id="newsContainer">
+        <div class="card" data-text="mm2 murder mystery 2 летнее обновление ножи">
+            <h3>🔪 Murder Mystery 2 (MM2)</h3>
+            <p><b>Скоро летнее обновление!</b> Разработчики готовят глобальный патч с новыми сезонными кейсами и ножами.</p>
+        </div>
+
+        <div class="card" data-text="dead rails мертвые рельсы поезд вода кактусы буря">
+            <h3>🚂 Dead Rails</h3>
+            <p><b>Масштабный патч!</b> Добавлен новый поезд на воде вместо угля. На карте бушует песчаная буря, а для заправки нужны кактусы с водой!</p>
+        </div>
+    </div>
+
+    <!-- Форма добавления новостей для админов -->
+    <div id="adminPanel" class="admin-panel">
+        <h3>🛠 Панель администратора</h3>
+        <p id="adminEmail" style="font-size: 12px; color: #aaa;"></p>
+        <input type="text" id="newTitle" placeholder="Заголовок новости (например: Новый промокод!)">
+        <textarea id="newText" rows="3" placeholder="Текст новости..."></textarea>
+        <button class="btn" onclick="postNews()">➕ Опубликовать новость</button>
+        <button class="btn" style="background-color: #444; margin-top: 8px;" onclick="logout()">Выйти</button>
+    </div>
+
+    <script>
+        // НАСТРОЙКИ FIREBASE (Замените на свои данные из консоли Firebase)
+        const firebaseConfig = {
+            apiKey: "ВАШ_API_KEY",
+            authDomain: "ВАШ_AUTH_DOMAIN",
+            projectId: "ВАШ_PROJECT_ID",
+            storageBucket: "ВАШ_STORAGE_BUCKET",
+            messagingSenderId: "ВАШ_MESSAGING_SENDER_ID",
+            appId: "ВАШ_APP_ID"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // Список email адресов, которым разрешено публиковать новости (ваша почта администратора)
+        const ADMIN_EMAILS = ["vash.email@gmail.com"];
+
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Приветствие из Telegram
+        let userGreeting = document.getElementById('userGreeting');
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            userGreeting.innerText = `👋 Привет, ${tg.initDataUnsafe.user.first_name}!`;
+        } else {
+            userGreeting.innerText = `👋 Добро пожаловать, Игрок!`;
+        }
+
+        // Проверка входа Google
+        auth.onAuthStateChanged((user) => {
+            let adminPanel = document.getElementById('adminPanel');
+            let authContainer = document.getElementById('authContainer');
+            let adminEmail = document.getElementById('adminEmail');
+
+            if (user && ADMIN_EMAILS.includes(user.email)) {
+                adminPanel.style.display = "block";
+                authContainer.style.display = "none";
+                adminEmail.innerText = `Вы вошли как админ: ${user.email}`;
+            } else {
+                adminPanel.style.display = "none";
+                authContainer.style.display = "block";
+            }
+        });
+
+        // Функция входа через Google
+        function loginWithGoogle() {
+            let provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch((error) => {
+                alert("Ошибка входа: " + error.message);
+            });
+        }
+
+        // Функция выхода
+        function logout() {
+            auth.signOut();
+        }
+
+        // Публикация новости
+        function postNews() {
+            let title = document.getElementById('newTitle').value;
+            let text = document.getElementById('newText').value;
+
+            if (!title || !text) {
+                alert("Заполните все поля!");
+                return;
+            }
+
+            let container = document.getElementById('newsContainer');
+            let newCard = document.createElement('div');
+            newCard.className = 'card';
+            newCard.setAttribute('data-text', (title + " " + text).toLowerCase());
+            newCard.innerHTML = `<h3>📌 ${title}</h3><p>${text}</p>`;
+            
+            // Добавляем новость наверх списка
+            container.prepend(newCard);
+
+            // Очищаем поля
+            document.getElementById('newTitle').value = '';
+            document.getElementById('newText').value = '';
+            alert("Новость успешно опубликована!");
+        }
+
+        // Поиск по новостям
+        function searchNews() {
+            let input = document.getElementById('searchInput').value.toLowerCase();
+            let cards = document.getElementsByClassName('card');
+
+            for (let i = 0; i < cards.length; i++) {
+                let text = cards[i].getAttribute('data-text').toLowerCase();
+                if (text.includes(input)) {
+                    cards[i].style.display = "";
+                } else {
+                    cards[i].style.display = "none";
+                }
+            }
+        }
+    </script>
+</body>
+</html>
