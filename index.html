@@ -208,7 +208,6 @@
             margin: 0 auto 15px auto;
         }
 
-        /* Медиа-контейнер в модалке */
         .modal-media-wrapper {
             width: 100%;
             max-height: 260px;
@@ -225,7 +224,7 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
-            cursor: zoom-in; /* Указатель, что картинку можно увеличить */
+            cursor: zoom-in;
             transition: opacity 0.2s;
         }
 
@@ -258,13 +257,10 @@
 
         /* Кнопки действий */
         .modal-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
             margin-top: 15px;
         }
 
-        .btn {
+        .close-btn {
             width: 100%;
             padding: 14px;
             border-radius: 12px;
@@ -273,24 +269,13 @@
             cursor: pointer;
             text-align: center;
             border: none;
-            transition: background 0.2s;
-        }
-
-        .close-btn {
             background: #3b82f6;
             color: white;
             box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            transition: background 0.2s;
         }
 
         .close-btn:active { background: #2563eb; }
-
-        .delete-btn {
-            background: #ef4444;
-            color: white;
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-        }
-
-        .delete-btn:active { background: #dc2626; }
 
         /* Полноэкранный просмотр фото (Lightbox) */
         .lightbox-overlay {
@@ -371,15 +356,13 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header-line"></div>
             
-            <!-- Сюда вставляется картинка или видео плеер -->
             <div id="modalMediaContainer" class="modal-media-wrapper" style="display:none;"></div>
             
             <h2 id="modalTitle" class="modal-title">Заголовок новости</h2>
             <div id="modalDesc" class="modal-full-desc">Полное описание...</div>
             
             <div class="modal-actions">
-                <button class="btn close-btn" onclick="closeNews()">Закрыть</button>
-                <button class="btn delete-btn" id="deletePostBtn">🗑️ Удалить новость</button>
+                <button class="close-btn" onclick="closeNews()">Закрыть</button>
             </div>
         </div>
     </div>
@@ -398,9 +381,7 @@
         const PROJECT_ID = 'roblox-mini-app';
         let allPosts = [];
         let currentFilter = 'all';
-        let activePostId = null; // Храним ID открытого в модалке поста
 
-        // Загрузка данных
         async function fetchCatalog() {
             const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/roblox_catalog`;
             try {
@@ -432,7 +413,6 @@
             }
         }
 
-        // Вывод карточек на экран
         function renderCatalog() {
             const container = document.getElementById('catalog');
             container.innerHTML = '';
@@ -454,7 +434,6 @@
                 card.onclick = () => openNews(post);
 
                 let imgHtml = '<div class="card-no-img">🎮</div>';
-                // Если данные содержат картинку или видео
                 if (post.url && (post.url.startsWith('data:image') || post.url.startsWith('http'))) {
                     imgHtml = `<img class="card-img" src="${post.url}" alt="${post.name}">`;
                 }
@@ -478,7 +457,6 @@
             });
         }
 
-        // Фильтрация
         function filterCategory(category) {
             currentFilter = category;
             const buttons = document.querySelectorAll('.filter-btn');
@@ -487,9 +465,7 @@
             renderCatalog();
         }
 
-        // ОТКРЫТИЕ МЕНЮ НОВОСТИ
         function openNews(post) {
-            activePostId = post.id; // Запоминаем текущий ID для кнопки удаления
             document.getElementById('modalTitle').innerText = post.name;
             document.getElementById('modalDesc').innerText = post.desc;
             
@@ -499,19 +475,14 @@
             if (post.url && post.url.trim() !== "") {
                 mediaContainer.style.display = 'flex';
                 
-                // Проверяем: видео это или картинка (на будущее)
                 if (post.url.startsWith('data:video') || post.url.endsWith('.mp4')) {
                     mediaContainer.innerHTML = `<video class="modal-video" src="${post.url}" controls playsinline></video>`;
                 } else {
-                    // Обычное фото. Добавляем клик для открытия во весь экран (зум)
                     mediaContainer.innerHTML = `<img id="modalImg" class="modal-img" src="${post.url}" alt="Image" onclick="openLightbox('${post.url}')">`;
                 }
             } else {
                 mediaContainer.style.display = 'none';
             }
-
-            // Вешаем обработчик на кнопку удаления
-            document.getElementById('deletePostBtn').onclick = () => deleteCurrentPost(post.id);
 
             document.getElementById('newsModal').classList.add('active');
             
@@ -522,10 +493,8 @@
 
         function closeNews() {
             document.getElementById('newsModal').classList.remove('active');
-            activePostId = null;
         }
 
-        // ПОЛНОЭКРАННЫЙ ЗУМ ФОТО (Lightbox)
         function openLightbox(src) {
             const lightbox = document.getElementById('lightbox');
             const lightboxImg = document.getElementById('lightboxImg');
@@ -541,33 +510,7 @@
             document.getElementById('lightbox').classList.remove('active');
         }
 
-        // ФУНКЦИЯ УДАЛЕНИЯ ПОСТА ИЗ БАЗЫ
-        async function deleteCurrentPost(docId) {
-            if (!confirm("Вы уверены, что хотите окончательно удалить эту новость из каталога Mini App?")) {
-                return;
-            }
-
-            const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/roblox_catalog/${docId}`;
-            
-            try {
-                const response = await fetch(url, { method: 'DELETE' });
-                
-                if (response.ok) {
-                    alert("Новость успешно удалена!");
-                    closeNews();
-                    fetchCatalog(); // Мгновенно обновляем сетку приложения
-                } else {
-                    alert("Ошибка удаления: у приложения нет прав на запись/удаление.");
-                }
-            } catch (error) {
-                console.error("Ошибка отправки DELETE-запроса:", error);
-                alert("Ошибка сети при попытке удаления.");
-            }
-        }
-
-        // Старт
         fetchCatalog();
     </script>
 </body>
 </html>
-
